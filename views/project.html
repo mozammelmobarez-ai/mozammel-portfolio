@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Details - Portfolio</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3/dist/plyr.css">
+</head>
+<body>
+  <!-- Custom Cursor -->
+  <div class="custom-cursor" id="customCursor"></div>
+
+  <div class="container">
+    <!-- Navigation -->
+    <nav id="navbar" style="position: relative; background: transparent; border-bottom: 1px solid var(--border); margin-bottom: 3rem;">
+      <a href="/" class="nav-logo" style="text-decoration: none;">Portfolio</a>
+      <ul class="nav-links" style="display: flex;">
+        <li><a href="/">Home</a></li>
+        <li><a href="/#work">Projects</a></li>
+        <li><a href="/#contact" class="nav-cta">Contact Me</a></li>
+      </ul>
+    </nav>
+
+    <!-- Back Button -->
+    <a href="/" id="backToCategoryBtn" class="category-back-btn">← Back to Category</a>
+
+    <!-- Project Content Details -->
+    <div class="project-details-wrap">
+      <div id="projectLoading" class="category-spinner-wrap">
+        <div class="category-spinner"></div>
+        <p>Loading project details...</p>
+      </div>
+
+      <div id="projectContent" style="display: none;">
+        <h1 id="projectTitle" class="project-details-title">Project Title</h1>
+        
+        <div class="project-details-meta">
+          <span id="projectCategory" class="project-type" style="background: rgba(6, 182, 212, 0.1); border-color: rgba(6, 182, 212, 0.25); color: var(--cyan-light);">Category</span>
+          <span id="projectType" class="project-type">Type</span>
+        </div>
+
+        <div id="projectMediaContainer" class="project-details-media">
+          <!-- Image or Video will be rendered here -->
+        </div>
+
+        <p id="projectDesc" class="project-details-desc">Project description goes here...</p>
+
+        <div id="projectLinkContainer" class="project-details-link-card" style="display: none;">
+          <h4>External Project Resource</h4>
+          <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">This project contains external links or interactive elements. Click below to visit the official resource.</p>
+          <a href="#" id="projectLinkBtn" target="_blank" class="project-details-link-btn">Visit Website / Link ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="margin-top: 6rem;">
+      <div class="footer-inner">
+        <div class="nav-logo">Portfolio</div>
+        <p>&copy; 2026 Mozammel Mobarez. All rights reserved.</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Plyr Library for video player -->
+  <script src="https://cdn.jsdelivr.net/npm/plyr@3/dist/plyr.polyfilled.js"></script>
+  
+  <script>
+    // Custom Cursor Logic
+    const customCursor = document.getElementById('customCursor');
+    document.addEventListener('mousemove', (e) => {
+      if (customCursor) {
+        customCursor.style.left = e.clientX + 'px';
+        customCursor.style.top = e.clientY + 'px';
+      }
+    });
+
+    const setupCursorHover = () => {
+      const interactiveElements = document.querySelectorAll('a, button, input, textarea, .project-card');
+      interactiveElements.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+          if (customCursor) customCursor.classList.add('hovering');
+        });
+        el.addEventListener('mouseleave', () => {
+          if (customCursor) customCursor.classList.remove('hovering');
+        });
+      });
+    };
+
+    document.addEventListener('mousedown', () => {
+      if (customCursor) customCursor.classList.add('clicking');
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (customCursor) customCursor.classList.remove('clicking');
+    });
+
+    // Fullscreen support: hide custom cursor when video is fullscreen
+    document.addEventListener('fullscreenchange', () => {
+      if (customCursor) {
+        if (document.fullscreenElement) {
+          if (document.fullscreenElement.tagName === 'VIDEO' || document.fullscreenElement.querySelector('video')) {
+            customCursor.style.display = 'none';
+          } else {
+            document.fullscreenElement.appendChild(customCursor);
+            customCursor.style.display = 'block';
+            customCursor.style.zIndex = '99999999';
+          }
+        } else {
+          document.body.appendChild(customCursor);
+          customCursor.style.display = 'block';
+        }
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setupCursorHover();
+      loadProjectDetails();
+    });
+
+    async function loadProjectDetails() {
+      try {
+        const pathParts = window.location.pathname.split('/');
+        const projectId = pathParts[pathParts.length - 1];
+
+        if (!projectId) {
+          throw new Error('Project ID not specified');
+        }
+
+        // Fetch project info
+        const response = await fetch(`/api/projects/${projectId}`);
+        if (!response.ok) throw new Error('Project not found');
+
+        const project = await response.json();
+        
+        // Fetch Category name
+        const catResponse = await fetch(`/api/categories/${project.category_id}`);
+        let categoryName = 'Category';
+        if (catResponse.ok) {
+          const category = await catResponse.json();
+          categoryName = category.name;
+          // Update back button href to point to the category page
+          const backBtn = document.getElementById('backToCategoryBtn');
+          backBtn.href = `/category/${project.category_id}`;
+          backBtn.textContent = `← Back to ${categoryName}`;
+        }
+
+        // Render project details
+        document.getElementById('projectTitle').textContent = project.title;
+        document.getElementById('projectCategory').textContent = categoryName;
+        document.getElementById('projectType').textContent = project.content_type;
+        document.getElementById('projectDesc').textContent = project.description || 'No description provided for this project.';
+
+        // Render Media
+        const mediaContainer = document.getElementById('projectMediaContainer');
+        if (project.content_type === 'image') {
+          mediaContainer.innerHTML = `<img src="${project.media_url}" alt="${project.title}">`;
+        } else if (project.content_type === 'video') {
+          mediaContainer.innerHTML = `
+            <video controls playsinline class="plyr-video">
+              <source src="${project.media_url}" type="video/mp4">
+            </video>
+          `;
+          // Initialize Plyr Video Player
+          setTimeout(() => {
+            const videoEl = document.querySelector('.plyr-video');
+            if (videoEl) new Plyr(videoEl);
+          }, 50);
+        } else if (project.content_type === 'link') {
+          mediaContainer.style.display = 'none'; // Hide empty media frame for links
+          const linkContainer = document.getElementById('projectLinkContainer');
+          const linkBtn = document.getElementById('projectLinkBtn');
+          linkBtn.href = project.media_url;
+          linkContainer.style.display = 'block';
+        }
+
+        document.getElementById('projectLoading').style.display = 'none';
+        document.getElementById('projectContent').style.display = 'block';
+        
+        // Re-setup hover cursor for newly loaded elements
+        setupCursorHover();
+      } catch (err) {
+        console.error('Error loading project details:', err);
+        document.getElementById('projectLoading').innerHTML = `
+          <p style="color: var(--pink); font-weight: 600;">Error: ${err.message}</p>
+          <a href="/" class="category-back-btn" style="margin-top: 1.5rem;">Return to Homepage</a>
+        `;
+      }
+    }
+  </script>
+
+  <!-- Custom Context Menu -->
+  <div id="contextMenu" class="context-menu"></div>
+
+  <script>
+    const contextMenu = document.getElementById('contextMenu');
+
+    document.addEventListener('contextmenu', (e) => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      e.preventDefault();
+
+      // On the project page, show project-specific actions
+      contextMenu.innerHTML = `
+        <a href="/" class="context-menu-item">Home</a>
+        <a href="/#work" class="context-menu-item">All Projects</a>
+        <button class="context-menu-item" style="background:transparent; border:none; color:var(--text); width:100%; text-align:left; cursor:pointer;" onclick="navigator.clipboard.writeText(window.location.href); contextMenu.style.display='none';">Copy Project Link</button>
+        <a href="/#contact" class="context-menu-item context-menu-cta">Contact Me</a>
+      `;
+
+      showContextMenu(e.clientX, e.clientY);
+    });
+
+    function showContextMenu(x, y) {
+      contextMenu.style.display = 'block';
+      const menuWidth = contextMenu.offsetWidth;
+      const menuHeight = contextMenu.offsetHeight;
+      let posX = x, posY = y;
+      if (x + menuWidth > window.innerWidth) posX = window.innerWidth - menuWidth - 10;
+      if (y + menuHeight > window.innerHeight) posY = window.innerHeight - menuHeight - 10;
+      contextMenu.style.left = posX + 'px';
+      contextMenu.style.top = posY + 'px';
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!contextMenu.contains(e.target)) contextMenu.style.display = 'none';
+    });
+    window.addEventListener('scroll', () => { contextMenu.style.display = 'none'; });
+  </script>
+</body>
+</html>

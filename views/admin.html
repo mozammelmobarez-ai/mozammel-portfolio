@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Admin Panel</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+</head>
+<body>
+  <!-- Custom Cursor -->
+  <div class="custom-cursor" id="customCursor"></div>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginWrapper" class="admin-login-wrapper">
+    <div class="admin-orb-1"></div>
+    <div class="admin-orb-2"></div>
+    <div class="admin-login-card">
+      <h1>Portfolio Admin</h1>
+      <form id="loginForm">
+        <div class="admin-form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        <div class="admin-form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="admin-btn">Login</button>
+        <div id="loginError" class="admin-error-message"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="admin-dashboard">
+    <div class="container">
+      <div class="admin-dashboard-header">
+        <h1>Portfolio Management</h1>
+        <button id="logoutBtn" class="admin-logout-btn">Logout</button>
+      </div>
+
+      <!-- TABS -->
+      <div class="admin-tabs">
+        <button class="admin-tab-btn active" data-tab="my-projects">My Projects</button>
+        <button class="admin-tab-btn" data-tab="messages">Messages</button>
+        <button class="admin-tab-btn" data-tab="backup-restore">Backup / Restore</button>
+        <button class="admin-tab-btn" data-tab="settings">Settings</button>
+      </div>
+
+      <!-- ============ MY PROJECTS TAB (MERGED) ============ -->
+      <div id="my-projectsTab" class="admin-tab-content active">
+        <!-- Add Category Form -->
+        <div class="admin-card">
+          <h2>Add New Category</h2>
+          <form id="categoryForm">
+            <div class="admin-form-grid">
+              <div class="admin-form-group full">
+                <label for="catName">Category Name *</label>
+                <input type="text" id="catName" name="name" required>
+              </div>
+              <div class="admin-form-group full">
+                <label for="catDescription">Description</label>
+                <textarea id="catDescription" name="description"></textarea>
+              </div>
+              <div class="admin-form-group full admin-file-input-wrapper">
+                <label for="catImage" class="admin-file-input-label">
+                  <span id="catImageName">Click to upload preview image</span>
+                </label>
+                <input type="file" id="catImage" name="preview_image" accept="image/*">
+              </div>
+            </div>
+            <div class="admin-form-actions">
+              <button type="submit" class="admin-btn-submit">Add Category</button>
+              <button type="button" id="cancelCatForm" class="admin-btn-cancel" style="display:none;" onclick="cancelEditCategory()">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="categoriesMessage" class="admin-message"></div>
+
+        <!-- Categories with Accordion Projects -->
+        <div id="categoriesList" class="admin-categories-list">
+          <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+            <span class="admin-spinner"></span> Loading categories...
+          </div>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div id="bulkActionsBar" class="admin-bulk-actions" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg-1); padding: 15px 30px; border-radius: 50px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; gap: 20px;">
+          <span id="bulkSelectionCount" style="color: var(--cyan); font-weight: 500;">0 selected</span>
+          <button class="admin-btn-cancel" onclick="bulkDeleteSelected()" style="background: rgba(255,107,107,0.1); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.3);">Delete Selected</button>
+          <button class="admin-btn-small" onclick="clearBulkSelection()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- ============ MESSAGES TAB ============ -->
+      <div id="messagesTab" class="admin-tab-content">
+        <div class="admin-card">
+          <h2>Contact Form Messages</h2>
+          <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Here you can view messages submitted by users via the contact form on your portfolio website.</p>
+        </div>
+
+        <div id="messagesMessage" class="admin-message"></div>
+
+        <div id="messagesList" class="admin-item-list">
+          <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+            <span class="admin-spinner"></span> Loading messages...
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ BACKUP / RESTORE TAB ============ -->
+      <div id="backup-restoreTab" class="admin-tab-content">
+        <div class="admin-card">
+          <h2>Backup Database & Files</h2>
+          <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Download your database and media files to keep them safe.</p>
+          <div class="admin-form-actions" style="justify-content: flex-start; gap: 15px;">
+            <button class="admin-btn-submit" onclick="downloadDatabase()">Download portfolio.db</button>
+            <button class="admin-btn-submit" onclick="loadBackupFiles()" style="background: var(--bg-3); color: var(--text);">View Files to Download</button>
+          </div>
+          <div id="backupFilesList" class="admin-item-list" style="margin-top: 20px; display: none;"></div>
+        </div>
+
+        <div class="admin-card" style="margin-top: 30px;">
+          <h2>Restore Database</h2>
+          <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Upload a portfolio.db file to replace your current database.</p>
+          <form id="restoreDbForm">
+            <div class="admin-form-group full admin-file-input-wrapper">
+              <label for="restoreDbFile" class="admin-file-input-label">
+                <span id="restoreDbFileName">Click to select portfolio.db</span>
+              </label>
+              <input type="file" id="restoreDbFile" name="db_file" accept=".db" required>
+            </div>
+            <button type="submit" class="admin-btn-submit" style="margin-top: 15px; max-width: 250px;">Restore Database</button>
+          </form>
+          <div id="restoreDbMessage" class="admin-message"></div>
+        </div>
+
+        <div class="admin-card" style="margin-top: 30px;">
+          <h2>Restore Missing Files</h2>
+          <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Check which files are referenced in your database but are missing from the server.</p>
+          <button class="admin-btn-submit" onclick="checkMissingFiles()" style="max-width: 250px;">Check Missing Files</button>
+          <div id="missingFilesList" class="admin-item-list" style="margin-top: 20px; display: none;"></div>
+        </div>
+      </div>
+
+      <!-- ============ SETTINGS TAB ============ -->
+      <div id="settingsTab" class="admin-tab-content">
+        <div class="admin-card">
+          <h2>Update Administrator Credentials</h2>
+          <form id="settingsForm">
+            <div class="admin-form-grid full">
+              <div class="admin-form-group">
+                <label for="settingsUsername">New Username</label>
+                <input type="text" id="settingsUsername" name="newUsername" placeholder="Leave blank to keep current username">
+              </div>
+              <div class="admin-form-group">
+                <label for="currentPassword">Current Password *</label>
+                <input type="password" id="currentPassword" required>
+              </div>
+              <div class="admin-form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" placeholder="Leave blank if not changing password">
+              </div>
+              <div class="admin-form-group">
+                <label for="confirmPassword">Confirm New Password</label>
+                <input type="password" id="confirmPassword" placeholder="Leave blank if not changing password">
+              </div>
+            </div>
+            <button type="submit" class="admin-btn-submit" style="max-width: 250px;">Update Credentials</button>
+          </form>
+        </div>
+
+        <div id="settingsMessage" class="admin-message"></div>
+
+        <div class="admin-card" style="margin-top: 30px; border-color: rgba(255,107,107,0.3);">
+          <h2>Danger Zone</h2>
+          <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">These actions cannot be undone.</p>
+          <button class="admin-btn-cancel" onclick="resetDatabase()" style="max-width: 250px; background: rgba(255,107,107,0.1); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.3);">Reset Entire Database</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Context Menu -->
+  <div id="contextMenu" class="context-menu">
+    <a href="/#about" class="context-menu-item">About</a>
+    <a href="/#skills" class="context-menu-item">Skills</a>
+    <a href="/#experience" class="context-menu-item">Experience</a>
+    <a href="/projects.html#work" class="context-menu-item">Projects</a>
+    <a href="/#contact" class="context-menu-item context-menu-cta">Contact Me</a>
+  </div>
+
+  <!-- Admin Custom Context Menu -->
+  <div id="adminContextMenu" class="context-menu">
+    <button class="context-menu-item" id="adminCtxDuplicate" style="text-align:left; background:transparent; border:none; color:var(--text); width:100%; cursor:pointer;">Duplicate Project</button>
+    <button class="context-menu-item" id="adminCtxCopy" style="text-align:left; background:transparent; border:none; color:var(--text); width:100%; cursor:pointer;">Copy Project Link</button>
+    <button class="context-menu-item" id="adminCtxMove" style="text-align:left; background:transparent; border:none; color:var(--text); width:100%; cursor:pointer;">Move to Category</button>
+    <button class="context-menu-item" id="adminCtxToggleVisibility" style="text-align:left; background:transparent; border:none; color:var(--text); width:100%; cursor:pointer;">Set as Hidden</button>
+    <div style="height:1px; background:var(--border); margin:5px 0;"></div>
+    <button class="context-menu-item" id="adminCtxDelete" style="text-align:left; background:transparent; border:none; color:#ff6b6b; width:100%; cursor:pointer;">Delete</button>
+  </div>
+
+  <!-- Project Modal -->
+  <div id="projectModal" class="admin-modal">
+    <div class="admin-modal-content">
+      <div class="admin-modal-header">
+        <h2 id="modalTitle">Add New Project</h2>
+        <button class="admin-modal-close" onclick="closeProjectModal()">&times;</button>
+      </div>
+      <div class="admin-modal-body">
+        <form id="projectForm">
+          <div class="admin-form-grid">
+            <div class="admin-form-group full">
+              <label for="projTitle">Project Title *</label>
+              <input type="text" id="projTitle" name="title" required>
+            </div>
+            <input type="hidden" id="projCategoryId" name="category_id">
+            <div class="admin-form-group full">
+              <label>Media Type *</label>
+              <div style="display: flex; gap: 20px; margin-top: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="media_type" value="upload" checked>
+                  <span>Upload File</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                  <input type="radio" name="media_type" value="link">
+                  <span>External Link</span>
+                </label>
+              </div>
+            </div>
+            <div class="admin-form-group full">
+              <label for="projDescription">Description</label>
+              <textarea id="projDescription" name="description"></textarea>
+            </div>
+            <div class="admin-form-group full admin-file-input-wrapper" id="projMediaUploadWrapper">
+              <label for="projMedia" class="admin-file-input-label">
+                <span id="projMediaName">Click to upload media file</span>
+              </label>
+              <input type="file" id="projMedia" name="media" accept="image/*,video/*">
+            </div>
+            <div class="admin-form-group full admin-file-input-wrapper" id="projThumbnailUploadWrapper">
+              <label for="projThumbnail" class="admin-file-input-label">
+                <span id="projThumbnailName">Click to upload custom thumbnail (optional)</span>
+              </label>
+              <input type="file" id="projThumbnail" name="thumbnail" accept="image/*">
+            </div>
+            <div class="admin-form-group full" id="projMediaUrlWrapper" style="display:none;">
+              <label for="projMediaUrl">Media URL or External Link *</label>
+              <input type="text" id="projMediaUrl" name="media_url" placeholder="https://...">
+            </div>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn-submit">Add Project</button>
+            <button type="button" class="admin-btn-cancel" onclick="closeProjectModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin.js"></script>
+
+  <script>
+    // Context Menu Handler
+    const contextMenu = document.getElementById('contextMenu');
+
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showContextMenu(e.clientX, e.clientY);
+    });
+
+    function showContextMenu(x, y) {
+      contextMenu.style.display = 'block';
+      
+      const menuWidth = contextMenu.offsetWidth;
+      const menuHeight = contextMenu.offsetHeight;
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      
+      let posX = x;
+      let posY = y;
+      
+      if (x + menuWidth > windowWidth) {
+        posX = windowWidth - menuWidth - 10;
+      }
+      
+      if (y + menuHeight > windowHeight) {
+        posY = windowHeight - menuHeight - 10;
+      }
+      
+      contextMenu.style.left = posX + 'px';
+      contextMenu.style.top = posY + 'px';
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!contextMenu.contains(e.target)) {
+        contextMenu.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('scroll', () => {
+      contextMenu.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
