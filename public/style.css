@@ -32,7 +32,6 @@ html { scroll-behavior: smooth; }
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
-    margin: 10px;
   }
   input, textarea {
     user-select: text !important;
@@ -65,6 +64,14 @@ html { scroll-behavior: smooth; }
   * {
     cursor: auto !important;
   }
+  .custom-cursor {
+    display: none !important;
+  }
+}
+
+/* Fullscreen video native cursor restoration */
+body.video-fullscreen, body.video-fullscreen * {
+  cursor: auto !important;
 }
 
 body {
@@ -1442,8 +1449,10 @@ footer {
     height: 360px;
   }
 
-  .stat-exp { bottom: -20px; left: 0; }
-  .stat-projects { top: -20px; right: 0; }
+  .stat-timeline { bottom: 20px; left: -30px; }
+  .stat-graphic { top: 20px; right: -30px; }
+  .timeline-svg { max-width: 140px; }
+  .graphic-svg { max-width: 150px; }
 
   .hero-buttons { justify-content: center; }
   .hero-tags { justify-content: center; }
@@ -1499,6 +1508,10 @@ footer {
 @media (max-width: 480px) {
   .hero-image-frame { width: 250px; height: 300px; }
   .about-stats { grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+  .stat-timeline { bottom: 10px; left: -20px; }
+  .stat-graphic { top: 10px; right: -20px; }
+  .timeline-svg { max-width: 110px; }
+  .graphic-svg { max-width: 120px; }
   
   /* Further reduce spacing on small screens */
   section {
@@ -1523,6 +1536,28 @@ footer {
 }
 
 /* ===== CATEGORY PAGE & DEDICATED PROJECT DETAILS PAGE ===== */
+.subpage-container {
+  padding-top: 7rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+@media (max-width: 900px) {
+  .subpage-container {
+    padding-top: 5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .subpage-container {
+    padding-top: 4.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 .category-header {
   text-align: center;
   margin-top: 6rem;

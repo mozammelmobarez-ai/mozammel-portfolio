@@ -153,7 +153,7 @@ const dbHelpers = {
   getAllCategories: (callback) => {
     db.all(`
       SELECT c.*, 
-             (SELECT COALESCE(preview_url, media_url) FROM projects WHERE category_id = c.id AND content_type = 'image' LIMIT 1) as preview_project_image
+             (SELECT COALESCE(preview_url, media_url) FROM projects WHERE category_id = c.id AND is_hidden = 0 LIMIT 1) as preview_project_image
       FROM categories c 
       ORDER BY c.created_at DESC
     `, callback);

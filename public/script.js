@@ -1,33 +1,52 @@
 // ===== CUSTOM CURSOR =====
 const customCursor = document.getElementById('customCursor');
+let isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
+// Completely disable and hide on touch devices
+if (isTouchDevice && customCursor) {
+  customCursor.style.display = 'none';
+}
+
+// Hide custom cursor dynamically on touchstart
+document.addEventListener('touchstart', () => {
+  isTouchDevice = true;
+  if (customCursor) customCursor.style.display = 'none';
+}, { passive: true });
 
 // Direct cursor movement without lag
 document.addEventListener('mousemove', (e) => {
-  if (customCursor) {
+  if (customCursor && !isTouchDevice) {
     customCursor.style.left = e.clientX + 'px';
     customCursor.style.top = e.clientY + 'px';
   }
 });
 
-// Hover effects on interactive elements
-const interactiveElements = document.querySelectorAll('a, button, input, textarea, .work-card, .skill-card, .about-stat-card, .timeline-content');
+// Hover effects function (can be called dynamically when items load)
+function setupCursorHover() {
+  if (isTouchDevice || !customCursor) return;
+  const elements = document.querySelectorAll('a, button, input, textarea, select, label, .work-card, .skill-card, .about-stat-card, .timeline-content, .project-card');
+  elements.forEach(el => {
+    if (el.dataset.cursorObserved) return;
+    el.dataset.cursorObserved = 'true';
+    el.addEventListener('mouseenter', () => {
+      customCursor.classList.add('hovering');
+    });
+    el.addEventListener('mouseleave', () => {
+      customCursor.classList.remove('hovering');
+    });
+  });
+}
 
-interactiveElements.forEach(el => {
-  el.addEventListener('mouseenter', () => {
-    if (customCursor) customCursor.classList.add('hovering');
-  });
-  el.addEventListener('mouseleave', () => {
-    if (customCursor) customCursor.classList.remove('hovering');
-  });
-});
+// Initial cursor hover setup
+setupCursorHover();
 
 // Click effect
 document.addEventListener('mousedown', () => {
-  if (customCursor) customCursor.classList.add('clicking');
+  if (customCursor && !isTouchDevice) customCursor.classList.add('clicking');
 });
 
 document.addEventListener('mouseup', () => {
-  if (customCursor) customCursor.classList.remove('clicking');
+  if (customCursor && !isTouchDevice) customCursor.classList.remove('clicking');
 });
 
 // Hide cursor when leaving window
@@ -36,23 +55,33 @@ document.addEventListener('mouseleave', () => {
 });
 
 document.addEventListener('mouseenter', () => {
-  if (customCursor) customCursor.style.opacity = '1';
+  if (customCursor && !isTouchDevice) customCursor.style.opacity = '1';
 });
 
 // Fullscreen support (Cursor visibility in fullscreen)
 document.addEventListener('fullscreenchange', () => {
   if (customCursor) {
-    if (document.fullscreenElement) {
-      if (document.fullscreenElement.tagName === 'VIDEO') {
+    const fullscreenEl = document.fullscreenElement;
+    if (fullscreenEl) {
+      // Check if the fullscreen element is a video or contains a video
+      const hasVideo = fullscreenEl.tagName === 'VIDEO' || fullscreenEl.querySelector('video');
+      if (hasVideo) {
+        document.body.classList.add('video-fullscreen');
         customCursor.style.display = 'none';
       } else {
-        document.fullscreenElement.appendChild(customCursor);
+        document.body.classList.remove('video-fullscreen');
+        fullscreenEl.appendChild(customCursor);
         customCursor.style.display = 'block';
         customCursor.style.zIndex = '99999999';
       }
     } else {
+      document.body.classList.remove('video-fullscreen');
       document.body.appendChild(customCursor);
-      customCursor.style.display = 'block';
+      if (isTouchDevice) {
+        customCursor.style.display = 'none';
+      } else {
+        customCursor.style.display = 'block';
+      }
     }
   }
 });
@@ -115,6 +144,22 @@ if (navLinks) {
   }));
 }
 
+// Smooth scroll for nav links on the same page
+document.querySelectorAll('a[href^="/#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    const href = this.getAttribute('href');
+    const targetId = href.substring(href.indexOf('#')); // e.g. "#about"
+    const targetEl = document.querySelector(targetId);
+    if (targetEl) {
+      if (window.location.pathname === '/' || window.location.pathname === '/index.html' || window.location.pathname === '') {
+        e.preventDefault();
+        targetEl.scrollIntoView({ behavior: 'smooth' });
+        history.pushState(null, null, targetId);
+      }
+    }
+  });
+});
+
 // ===== SCROLL REVEAL =====
 const reveals = document.querySelectorAll('.reveal');
 const observer = new IntersectionObserver(entries => {
@@ -125,54 +170,86 @@ reveals.forEach(el => observer.observe(el));
 // ===== SMART CONTEXT MENU =====
 const contextMenu = document.getElementById('contextMenu');
 
-document.addEventListener('contextmenu', (e) => {
-  // Allow native right-click on inputs and textareas for copy/paste
-  const tag = e.target.tagName;
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+if (contextMenu) {
+  document.addEventListener('contextmenu', (e) => {
+    // Allow native right-click on inputs and textareas for copy/paste
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-  e.preventDefault();
+    e.preventDefault();
 
-  // Check if right-clicked on a work-card (category card on main page)
-  const workCard = e.target.closest('.work-card');
-  if (workCard) {
-    const link = workCard.getAttribute('onclick');
-    const match = link && link.match(/\/category\/(\d+)/);
-    if (match) {
-      buildCardContextMenu(match[0], workCard);
+    // Check if right-clicked on a work-card (category card on main page)
+    const workCard = e.target.closest('.work-card');
+    // Check if right-clicked on a project-card (project card on category page)
+    const projectCard = e.target.closest('.project-card');
+
+    if (workCard) {
+      const link = workCard.getAttribute('onclick');
+      const match = link && link.match(/\/category\/(\d+)/);
+      if (match) {
+        buildCardContextMenu(match[0], workCard);
+      }
+    } else if (projectCard) {
+      const onclick = projectCard.getAttribute('onclick');
+      const match = onclick && onclick.match(/\/project\/(\d+)/);
+      if (match) {
+        const projTitle = projectCard.querySelector('h3')?.textContent || 'Project';
+        contextMenu.innerHTML = `
+          <span class="context-menu-item" style="opacity:0.5; pointer-events:none; font-size:0.75rem;">${projTitle}</span>
+          <a href="${match[0]}" class="context-menu-item">View Project</a>
+          <button class="context-menu-item" style="background:transparent; border:none; color:var(--text); width:100%; text-align:left; cursor:pointer;" onclick="copyToClipboard('${window.location.origin}${match[0]}')">Copy Link</button>
+        `;
+      }
+    } else {
+      // Check if we are on a project page
+      const path = window.location.pathname;
+      if (path.includes('/project/')) {
+        contextMenu.innerHTML = `
+          <a href="/" class="context-menu-item">Home</a>
+          <a href="/#work" class="context-menu-item">All Projects</a>
+          <button class="context-menu-item" style="background:transparent; border:none; color:var(--text); width:100%; text-align:left; cursor:pointer;" onclick="copyToClipboard(window.location.href)">Copy Project Link</button>
+          <a href="/#contact" class="context-menu-item context-menu-cta">Contact Me</a>
+        `;
+      } else {
+        // Show default navigation context menu
+        buildDefaultContextMenu();
+      }
     }
-  } else {
-    // Show default navigation context menu
-    buildDefaultContextMenu();
-  }
 
-  showContextMenu(e.clientX, e.clientY);
-});
+    showContextMenu(e.clientX, e.clientY);
+  });
+}
 
 function buildDefaultContextMenu() {
-  contextMenu.innerHTML = `
-    <a href="/#about" class="context-menu-item">About</a>
-    <a href="/#skills" class="context-menu-item">Skills</a>
-    <a href="/#experience" class="context-menu-item">Experience</a>
-    <a href="/#work" class="context-menu-item">Projects</a>
-    <a href="/#contact" class="context-menu-item context-menu-cta">Contact Me</a>
-  `;
+  if (contextMenu) {
+    contextMenu.innerHTML = `
+      <a href="/#about" class="context-menu-item">About</a>
+      <a href="/#skills" class="context-menu-item">Skills</a>
+      <a href="/#experience" class="context-menu-item">Experience</a>
+      <a href="/#work" class="context-menu-item">Projects</a>
+      <a href="/#contact" class="context-menu-item context-menu-cta">Contact Me</a>
+    `;
+  }
 }
 
 function buildCardContextMenu(categoryPath, cardEl) {
-  const categoryName = cardEl.querySelector('.work-cat')?.textContent || cardEl.querySelector('h3')?.textContent || 'Category';
-  contextMenu.innerHTML = `
-    <span class="context-menu-item" style="opacity:0.5; pointer-events:none; font-size:0.75rem;">${categoryName}</span>
-    <a href="${categoryPath}" class="context-menu-item">View Category</a>
-    <button class="context-menu-item" style="background:transparent; border:none; color:var(--text); width:100%; text-align:left; cursor:pointer;" onclick="copyToClipboard('${window.location.origin}${categoryPath}')">Copy Link</button>
-  `;
+  if (contextMenu) {
+    const categoryName = cardEl.querySelector('.work-cat')?.textContent || cardEl.querySelector('h3')?.textContent || 'Category';
+    contextMenu.innerHTML = `
+      <span class="context-menu-item" style="opacity:0.5; pointer-events:none; font-size:0.75rem;">${categoryName}</span>
+      <a href="${categoryPath}" class="context-menu-item">View Category</a>
+      <button class="context-menu-item" style="background:transparent; border:none; color:var(--text); width:100%; text-align:left; cursor:pointer;" onclick="copyToClipboard('${window.location.origin}${categoryPath}')">Copy Link</button>
+    `;
+  }
 }
 
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).catch(() => {});
-  contextMenu.style.display = 'none';
+  if (contextMenu) contextMenu.style.display = 'none';
 }
 
 function showContextMenu(x, y) {
+  if (!contextMenu) return;
   contextMenu.style.display = 'block';
   
   const menuWidth = contextMenu.offsetWidth;
@@ -191,13 +268,13 @@ function showContextMenu(x, y) {
 }
 
 document.addEventListener('click', (e) => {
-  if (!contextMenu.contains(e.target)) {
+  if (contextMenu && !contextMenu.contains(e.target)) {
     contextMenu.style.display = 'none';
   }
 });
 
 window.addEventListener('scroll', () => {
-  contextMenu.style.display = 'none';
+  if (contextMenu) contextMenu.style.display = 'none';
 });
 
 // ===== MARQUEE ANIMATION =====
