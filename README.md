@@ -1,5 +1,27 @@
 # Portfolio Admin Panel - Setup Guide
 
+## Turso (cloud SQLite)
+
+The app can use **Turso** for the database while keeping uploaded images/videos on this server (`public/uploads/`).
+
+1. Copy `.env.example` to `.env` and fill in values
+2. Create a free database at [https://turso.tech](https://turso.tech)
+3. Put these in `.env`:
+
+```
+TURSO_DATABASE_URL=libsql://your-db-name-your-org.turso.io
+TURSO_AUTH_TOKEN=your_token
+```
+
+4. Copy existing local data to Turso (files stay on disk):
+
+```bash
+npm run migrate:turso
+```
+
+4. Restart the server (`npm start`). If those env vars are empty, it still uses `db/portfolio.db`.
+
+
 ## Installation
 
 1. **Install dependencies:**

@@ -66,7 +66,7 @@ app.use((err, req, res, next) => {
 });
 
 // ============ START SERVER ============
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`
 ╔═══════════════════════════════════════╗
 ║  Portfolio Admin Server               ║
@@ -78,12 +78,8 @@ app.listen(PORT, () => {
 
 process.on('SIGINT', () => {
   console.log('\nShutting down server...');
-  if (database.db) {
-    database.db.close((err) => {
-      if (err) console.error('Error closing database during shutdown:', err);
-      process.exit(0);
-    });
-  } else {
+  database.closeDb((err) => {
+    if (err) console.error('Error closing database during shutdown:', err);
     process.exit(0);
-  }
+  });
 });
